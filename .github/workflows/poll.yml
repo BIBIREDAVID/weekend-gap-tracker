@@ -9,7 +9,14 @@ on:
 
 jobs:
   poll:
-    runs-on: ubuntu-latest
+    # GitHub's own ubuntu-latest hosted runners are geo-blocked by Binance
+    # for this product (confirmed live: code 40304 "Service not available
+    # due to compliance restriction" — GitHub's hosted runners run in US
+    # datacenters, and Ondo's tokenized stocks are explicitly restricted
+    # from the US; see NOTES.md). Runs on a self-hosted runner instead —
+    # register one from this repo's Settings > Actions > Runners, using the
+    # same machine/network that already works.
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: functions

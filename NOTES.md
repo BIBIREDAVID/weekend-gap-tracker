@@ -119,6 +119,23 @@ API key, see functions/scripts/test-signature.js_.
   every bstock row until `MarketStatusBadge.jsx` was changed to fall back to
   `openState` when `marketStatus` is missing.
 
+- [2026-09-30] **Architecture-breaking**: `Get RWA Token List` returns
+  `code 40304: Service not available due to compliance restriction` when
+  called from a GitHub Actions `ubuntu-latest` hosted runner — same
+  credentials that work fine locally moments earlier. GitHub's free hosted
+  runners run in Microsoft's US datacenters, and Ondo's own tokenized-stock
+  terms explicitly say the product is "not available in the US or to US
+  persons" — strongly suggests this is IP-geolocation-based compliance
+  blocking on Binance's side, not anything wrong with the request itself.
+  This directly breaks the project's core architecture (Firebase Spark free
+  plan can't run scheduled Cloud Functions, so GitHub Actions cron was the
+  whole point). Not confirmed with certainty (Binance doesn't document this
+  error code), but the evidence points strongly at runner geography. Needs
+  a decision: self-hosted runner (defeats the "fully automated" goal unless
+  run on a non-US always-on machine), a different free scheduler with
+  non-US hosted compute, or accept manual/local-only polling for the
+  submission.
+
 _Fill in as we hit them — exact error message + status code + what fixed it._
 
 - [2026-09-30] Trading API (`trading-api`), `GET /aggregator/swap`: the response's
