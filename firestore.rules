@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // The dashboard only reads. All writes come from Cloud Functions via
+    // the Admin SDK, which bypasses these rules entirely — so both
+    // collections are read-only from the client, write-only from the server.
+    match /latest/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /snapshots/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /wallet/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

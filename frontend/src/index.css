@@ -1,0 +1,228 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0d12;
+  --panel: #12151c;
+  --border: #232733;
+  --text: #e6e8ee;
+  --muted: #8b93a7;
+  --accent: #f0b429;
+  --up: #3ecf8e;
+  --down: #ef5b5b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+}
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  max-width: 60ch;
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+
+.hint, .error {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.error { color: var(--down); }
+
+code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.9em;
+}
+
+.ticker-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ticker-table th {
+  text-align: left;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ticker-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-table tr:last-child td { border-bottom: none; }
+
+.row-flagged { background: rgba(240, 180, 41, 0.06); }
+
+.ticker {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.token-symbol {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.spread-flagged {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.updated { color: var(--muted); }
+
+.status-badge {
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.status-open {
+  color: var(--up);
+  border-color: rgba(62, 207, 142, 0.35);
+}
+
+.status-closed {
+  color: var(--muted);
+}
+
+.row-clickable { cursor: pointer; }
+.row-clickable:hover { background: rgba(255, 255, 255, 0.03); }
+.row-selected { background: rgba(240, 180, 41, 0.1) !important; }
+
+.chart-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px 8px;
+  margin-bottom: 24px;
+}
+
+.chart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.chart-panel-header h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.chart-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.chart-close:hover { color: var(--text); }
+
+.spread-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-weekend { fill: rgba(240, 180, 41, 0.08); }
+.chart-gridline { stroke: var(--border); stroke-width: 1; }
+.chart-zero { stroke: var(--border); stroke-width: 1; }
+.chart-threshold { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }
+.chart-line { stroke: var(--accent); stroke-width: 2; }
+.chart-dot { fill: var(--accent); }
+.chart-tick-label { fill: var(--muted); font-size: 10px; }
+.chart-axis-label { fill: var(--muted); font-size: 10px; }
+
+.wallet-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+}
+
+.wallet-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.wallet-panel-header h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.wallet-address {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-assets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wallet-asset {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 90px;
+}
+
+.wallet-asset-symbol {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wallet-asset-balance {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-asset-usd {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
