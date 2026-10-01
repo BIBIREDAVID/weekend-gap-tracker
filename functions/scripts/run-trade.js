@@ -2,15 +2,16 @@
 /**
  * Manual trigger for the weekend-gap trade: quote -> swap -> sign -> settle.
  *
- * This is the RFQ path, not plain SWAP: equity/RWA tokens (Ondo, BStock)
- * always come back from `/swap` with executionMode="RFQ", settled by
- * signing `rfq.typedDataToSign` (EIP-712) and submitting it, not by
- * broadcasting a raw transaction — see functions/src/trading.js and
- * NOTES.md for why pre-transaction/simulate + broadcast-transaction don't
- * apply to this trade.
+ * `/swap` returns either executionMode="RFQ" (sign `rfq.typedDataToSign`
+ * with EIP-712, settle via order/submit) or "SWAP" (sign+broadcast the
+ * returned `tx` directly). The docs claim equity/RWA tokens always come
+ * back RFQ — confirmed live that's NOT true: USDT->AAPLon came back SWAP
+ * via vendor LiquidMesh, presumably because it found real AMM liquidity
+ * for that pair. This script handles both; see NOTES.md for the finding.
  *
- * Defaults to a dry run (quote + swap only, no signing). Pass --live to
- * actually sign and submit — this moves real funds on BSC mainnet.
+ * Defaults to a dry run (quote + swap, +simulate for the SWAP path, no
+ * signing). Pass --live to actually sign and submit/broadcast — this moves
+ * real funds on BSC mainnet.
  *
  *   cd functions
  *   cp .env.example .env   # OC_API_KEY, OC_SECRET_KEY, WALLET_PRIVATE_KEY
@@ -23,14 +24,31 @@
  */
 require("dotenv").config();
 const { randomUUID } = require("crypto");
-const { Wallet } = require("ethers");
+const { Wallet, JsonRpcProvider } = require("ethers");
 const { BinanceWeb3Client } = require("../src/binanceClient");
-const { getAggregatedQuote, buildSwapTransaction, submitRfqOrder, getRfqOrderStatus } = require("../src/trading");
+const {
+  getAggregatedQuote,
+  buildSwapTransaction,
+  submitRfqOrder,
+  getRfqOrderStatus,
+  simulateTransaction,
+  broadcastTransaction,
+} = require("../src/trading");
 const { toSmallestUnit, fromSmallestUnit } = require("../src/units");
 const { signRfqTypedData } = require("../src/signing");
-const { BSC_CHAIN_ID, BSC_USDT_ADDRESS, DEFAULT_SLIPPAGE_PCT, RFQ_TERMINAL_STATUSES } = require("../src/config");
+const {
+  BSC_CHAIN_ID,
+  BSC_RPC_URL,
+  BSC_USDT_ADDRESS,
+  DEFAULT_SLIPPAGE_PCT,
+  RFQ_TERMINAL_STATUSES,
+} = require("../src/config");
 
-const USDT_DECIMALS = 6;
+// BSC's USDT (Binance-Peg, BEP-20) uses 18 decimals, NOT the 6 decimals
+// Ethereum mainnet USDT uses — confirmed live via a quote's fromToken.decimal
+// field. Got this wrong once already: --usdt 10 at the wrong decimals sent
+// 1e-11 USDT and tripped the API's $5 minimum-order error. See NOTES.md.
+const USDT_DECIMALS = 18;
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 120_000;
 
@@ -144,14 +162,45 @@ async function main() {
   const { executionMode, tx, rfq } = swapRes.data;
   console.log(`executionMode: ${executionMode}`);
 
-  if (executionMode !== "RFQ") {
-    // Not expected for RWA/equity tokens — bail rather than guess at the
-    // plain-SWAP sign+simulate+broadcast path with an untested code path.
-    console.log("Non-RFQ swap (tx object below) — this script only automates the RFQ settlement path:");
-    console.log(JSON.stringify(tx, null, 2));
+  if (executionMode === "SWAP") {
+    console.log(`Simulating swap via ${tx.to} ...`);
+    const simRes = await simulateTransaction(client, {
+      binanceChainId: BSC_CHAIN_ID,
+      evmTx: { from: tx.from, to: tx.to, value: tx.value, data: tx.data },
+    });
+    if (simRes.code !== 0) throw new Error(`Simulate failed (code ${simRes.code}): ${simRes.msg}`);
+    console.log("Simulation result:", JSON.stringify(simRes.data, null, 2));
+
+    if (!args.live) {
+      console.log("Dry run (pass --live to sign and broadcast). Quote + swap + simulate look good, stopping here.");
+      return;
+    }
+
+    const provider = new JsonRpcProvider(BSC_RPC_URL);
+    const nonce = await provider.getTransactionCount(userWalletAddress, "pending");
+    const signedTx = await wallet.signTransaction({
+      to: tx.to,
+      data: tx.data,
+      value: BigInt(tx.value),
+      gasLimit: BigInt(tx.gas),
+      gasPrice: BigInt(tx.gasPrice),
+      nonce,
+      chainId: Number(BSC_CHAIN_ID),
+      type: 0,
+    });
+
+    console.log("Broadcasting ...");
+    const broadcastRes = await broadcastTransaction(client, {
+      binanceChainId: BSC_CHAIN_ID,
+      signedTransaction: signedTx,
+      address: userWalletAddress,
+    });
+    if (broadcastRes.code !== 0) throw new Error(`Broadcast failed (code ${broadcastRes.code}): ${broadcastRes.msg}`);
+    console.log("Broadcast result:", JSON.stringify(broadcastRes.data, null, 2));
     return;
   }
 
+  // executionMode === "RFQ"
   if (!args.live) {
     console.log("Dry run (pass --live to sign and submit). Quote + swap look good, stopping here.");
     return;

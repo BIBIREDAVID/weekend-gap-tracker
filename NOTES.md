@@ -136,6 +136,33 @@ API key, see functions/scripts/test-signature.js_.
   non-US hosted compute, or accept manual/local-only polling for the
   submission.
 
+- [2026-10-01] `GET /aggregator/quote`, `code 40375: Minimum order amount
+  is 5 USD` on a request for 10 USDT → AAPLon. Root cause was ours, not the
+  API's: `scripts/run-trade.js` hardcoded `USDT_DECIMALS = 6` (Ethereum
+  mainnet convention), but BSC's USDT (Binance-Peg, same address this
+  project uses) actually has **18 decimals** — confirmed via a quote's own
+  `fromToken.decimal` field. `--usdt 10` at 6 decimals sent `10000000` raw
+  units, which at 18 decimals is 0.00000000001 USDT, not $10. Fixed by
+  changing the constant to 18. Worth internalizing: don't assume a
+  stablecoin's decimals from its symbol or from another chain's convention
+  — read `decimal` off a live quote/token response instead.
+
+- [2026-10-01] **Contradicts the docs**: `GET /aggregator/swap` for
+  USDT → AAPLon (Ondo, an equity/RWA token) returned
+  `executionMode: "SWAP"` with a real router transaction (`vendorName:
+  "LiquidMesh"`, router `0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5`), not
+  `"RFQ"`. The Trading API docs explicitly state equity/RWA tokens always
+  settle via RFQ — that's what `scripts/run-trade.js` was built around, and
+  it currently bails out (prints the tx, does nothing) on any non-RFQ
+  response. Likely explanation: LiquidMesh found actual AMM liquidity for
+  this pair (bridged/synthetic liquidity, not RFQ-matched), so execution
+  mode may depend on which vendor services the specific pair that moment,
+  not the token category. **Action item**: `run-trade.js` needs the plain
+  SWAP sign+broadcast path implemented (we already have the wrappers in
+  `trading.js` — `simulateTransaction`/`broadcastTransaction` — just never
+  wired up since we assumed they'd be unused) before a real trade can
+  actually execute for a pair that comes back this way.
+
 _Fill in as we hit them — exact error message + status code + what fixed it._
 
 - [2026-09-30] Trading API (`trading-api`), `GET /aggregator/swap`: the response's
@@ -160,11 +187,37 @@ _Fill in as we hit them — exact error message + status code + what fixed it._
   live verification once a key is available; if wrong, the fix is probably
   waiting for the field to exist somewhere in the `/swap` response.
 
+- [2026-10-01] Full SWAP path (quote → swap → simulate) confirmed working
+  end-to-end against live infrastructure with a real, freshly-generated
+  but unfunded wallet. `simulateTransaction` correctly predicted
+  `status: "FAILED"`, `failReason: "execution reverted: BEP20: transfer
+  amount exceeds balance"` — exactly right, since the wallet has zero
+  USDT. This validates the whole pipeline's correctness (routing, calldata
+  construction, gas estimate, our own tx-signing code) without needing any
+  funds: the only thing standing between this and a real settled trade is
+  money in the wallet, not anything in the code. Broadcasting (the one
+  remaining untested step) needs `--live` plus actual funds — not
+  attempted, no funds available this session.
+
 ## AI stack feedback (Wallet Skills / Agentic Wallet / CLI)
 
 _Stretch goal, not started yet._
 
 ## Tokenized-stock specifics
+
+- [2026-10-01] **First real evidence the core thesis holds.** Self-hosted
+  runner poll at 06:09 UTC (overnight for US markets) shows spreads clearly
+  wider than the same tokens during regular hours a few hours earlier:
+  GOOGLon 3.48% (was 0.26% at regular-hours open), NVDAon 1.75% (was
+  0.17%), METAon 1.06% (was 0.37%), MSFTon 0.99% (was 0.51%). Every token
+  showing `marketStatus: "overnight"` has a meaningfully larger spread than
+  its regular-hours reading; `bstock` tokens (still missing `marketStatus`,
+  see API pitfalls) show the same pattern in magnitude even without the
+  label. This is the first real signal — not a ratio artifact, not a
+  derived-field illusion — that the token price actually drifts from the
+  real market price outside regular trading hours, which is exactly what
+  this project is supposed to detect. Need to keep watching through the
+  actual weekend to see if it goes further.
 
 _Fill in once the poller has real data: liquidity/slippage outside normal
 market hours, and how bStocks vs. Ondo vs. xStocks differ in practice for the

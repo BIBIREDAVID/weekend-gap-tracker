@@ -20,9 +20,11 @@ deadline: **Sun Oct 11, 2026, 12:00 UTC**.
 - [x] Scheduled poller → Firestore (GitHub Actions cron, every 15 min)
 - [x] Dashboard: live ticker table, spread %, market open/closed badge
 - [x] Spread-history chart with the weekend window marked
-- [x] Trading API quote → sign → settle (small live trade) — code written, untested against
-      a real key; see NOTES.md — RWA/equity tokens settle via RFQ (EIP-712 sign + order/submit),
-      not the plain-SWAP simulate/broadcast path this item originally assumed
+- [x] Trading API quote → sign → settle (small live trade) — quote/swap/simulate confirmed
+      working end-to-end live (unfunded wallet, simulate correctly predicted the expected
+      insufficient-balance failure); broadcasting a real trade still needs funds, not attempted.
+      Docs claim RWA tokens always settle via RFQ — confirmed live that's false (AAPLon came
+      back plain SWAP); script now handles both paths. See NOTES.md
 - [x] Wallet API: post-trade balance on the dashboard — code written, untested against a real key
 - [ ] Agentic Wallet / Wallet Skills stretch goal — researched + documented (see below),
       not installed: it's a separate integration path (QR sign-in via the Binance App,

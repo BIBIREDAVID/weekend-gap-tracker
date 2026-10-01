@@ -10,6 +10,12 @@ const BUILD_PREFIX = "/build";
 // BSC mainnet — the only chain in scope for this hackathon track.
 const BSC_CHAIN_ID = "56";
 
+// Public BSC JSON-RPC endpoint — only used to fetch a nonce before signing
+// a plain-SWAP transaction (the RFQ path needs no RPC at all). Binance's
+// own API returns the tx to sign but not a nonce, since nonces are a
+// chain-state concern, not something a quoting service tracks.
+const BSC_RPC_URL = "https://bsc-dataseed.binance.org";
+
 // RWA Data "Get RWA Token List" sector tabs (tabId query param) — DOESN'T
 // ACTUALLY FILTER. Confirmed live: tabId=1 and tabId=9 both return the
 // identical 488-token full catalog in the same order. Kept only as a
@@ -83,6 +89,7 @@ module.exports = {
   BINANCE_BASE_URL,
   BUILD_PREFIX,
   BSC_CHAIN_ID,
+  BSC_RPC_URL,
   BSC_USDT_ADDRESS,
   DEFAULT_SLIPPAGE_PCT,
   SECTOR_TABS,
